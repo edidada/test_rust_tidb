@@ -16,7 +16,7 @@ env:
 jobs:
   build-and-test:
     name: Build, fmt, clippy, test (Linux)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Configure git default branch
         run: git config --global init.defaultBranch main
@@ -57,7 +57,7 @@ jobs:
 
   coverage:
     name: Coverage (llvm-cov)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build-and-test
     steps:
       - name: Configure git default branch
