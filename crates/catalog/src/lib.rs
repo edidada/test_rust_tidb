@@ -6,8 +6,38 @@ pub mod binder;
 pub use binder::{BindOutput, BoundItem, DefaultBinder};
 
 use lattice_common::Result;
-use lattice_planner::LogicalPlanNode;
+use lattice_parser::{Parser as _, SqlParser};
+use lattice_planner::{ExplainFormat, LogicalPlanNode};
 use lattice_types::DataType;
+
+/// L2 端到端贯通入口：SQL 文本 → Lexer/Parser → Binder → 完整 LogicalPlanNode。
+pub fn compile_sql<C: CatalogProvider>(
+    sql: &str,
+    catalog: std::sync::Arc<C>,
+    default_database: &str,
+) -> Result<LogicalPlanNode> {
+    let stmts = SqlParser.parse(sql)?;
+    let stmt = stmts.first().and_then(|s| s.statement()).ok_or_else(|| {
+        lattice_common::Error::new(lattice_common::ErrorKind::Parse, "SQL 未解析出语句")
+    })?;
+    let inner = match stmt {
+        lattice_parser::Statement::Explain { inner } => inner.as_ref(),
+        other => other,
+    };
+    let binder = DefaultBinder::from_arc(catalog, default_database);
+    binder.bind_select(inner, &SessionCtx)?.into_logical_plan()
+}
+
+/// 贯通入口（输出 EXPLAIN 文本）。
+pub fn explain_sql<C: CatalogProvider>(
+    sql: &str,
+    catalog: std::sync::Arc<C>,
+    default_database: &str,
+    format: ExplainFormat,
+) -> Result<String> {
+    let plan = compile_sql(sql, catalog, default_database)?;
+    lattice_planner::explain(&plan, format)
+}
 
 /// 限定名（db.table）。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -49,7 +79,7 @@ pub trait Binder {
 }
 
 /// 内存 Catalog（L0 空实现，L1 填充元数据）。
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct MemoryCatalog {
     tables: Vec<Table>,
 }

@@ -5,7 +5,7 @@ use crate::{CatalogProvider, MemoryCatalog, QualifiedName, SessionCtx};
 use lattice_common::{Error, ErrorKind, Result};
 use lattice_expr::{ColumnRef, Expr, FuncSig};
 use lattice_parser::{AstExpr, BinaryOp, Literal, Statement, UnaryOp};
-use lattice_planner::{LogicalPlanNode, PlanNodeId};
+use lattice_planner::{logical, ExplainFormat, LogicalPlanNode, PlanNodeId};
 use lattice_types::{DataType, Scalar};
 use std::sync::Arc;
 
@@ -25,6 +25,77 @@ pub struct BoundItem {
     pub expr: Expr,
     pub alias: Option<String>,
     pub data_type: DataType,
+}
+
+impl BindOutput {
+    /// 把绑定结果组装为完整的 L2 逻辑计划树（自底向上）：
+    /// DataSource/TableDual → Selection → Projection → Sort/TopN → Limit。
+    pub fn into_logical_plan(self) -> Result<LogicalPlanNode> {
+        let mut current = Arc::new(self.plan);
+        let mut next_id = current.id.0 + 1;
+
+        if let Some(predicate) = self.selection {
+            current = Arc::new(LogicalPlanNode::new(
+                PlanNodeId(next_id),
+                logical::selection(predicate),
+                vec![current],
+            )?);
+            next_id += 1;
+        }
+
+        current = Arc::new(LogicalPlanNode::new(
+            PlanNodeId(next_id),
+            logical::projection(
+                self.projection.iter().map(|i| i.expr.clone()).collect(),
+                self.projection.iter().map(|i| i.alias.clone()).collect(),
+            ),
+            vec![current],
+        )?);
+        next_id += 1;
+
+        if !self.order_by.is_empty() {
+            let items = self
+                .order_by
+                .iter()
+                .map(|(expr, desc)| lattice_expr::SortItem {
+                    expr: Box::new(expr.clone()),
+                    desc: *desc,
+                    nulls_first: false,
+                })
+                .collect();
+            let plan = if let Some(n) = self.limit {
+                logical::LogicalPlan::TopN(logical::TopN {
+                    items,
+                    limit: n,
+                    offset: 0,
+                })
+            } else {
+                logical::LogicalPlan::Sort(logical::Sort { items })
+            };
+            current = Arc::new(LogicalPlanNode::new(
+                PlanNodeId(next_id),
+                plan,
+                vec![current],
+            )?);
+            // TopN 已融合 LIMIT，不再追加 Limit 节点。
+            if self.limit.is_some() {
+                return Ok((*current).clone());
+            }
+        } else if let Some(n) = self.limit {
+            current = Arc::new(LogicalPlanNode::new(
+                PlanNodeId(next_id),
+                logical::limit(n, 0),
+                vec![current],
+            )?);
+        }
+
+        Ok((*current).clone())
+    }
+
+    /// 组装并输出 EXPLAIN 文本（L2 贯通入口）。
+    pub fn explain(&self, format: ExplainFormat) -> Result<String> {
+        lattice_planner::explain(&self.clone().into_logical_plan()?, format)
+    }
 }
 
 /// 作用域：FROM 子句可见的列（含表名限定）。
@@ -63,6 +134,13 @@ impl<C: CatalogProvider> DefaultBinder<C> {
     pub fn with_catalog(catalog: C, default_database: impl Into<String>) -> Self {
         Self {
             catalog: Arc::new(catalog),
+            default_database: default_database.into(),
+        }
+    }
+
+    pub fn from_arc(catalog: Arc<C>, default_database: impl Into<String>) -> Self {
+        Self {
+            catalog,
             default_database: default_database.into(),
         }
     }
