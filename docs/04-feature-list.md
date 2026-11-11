@@ -517,7 +517,7 @@
 | F-CBO-011 | Join Reorder 枚举族（DPsize/DPsub/DPccp/Greedy/GEQO） | P0 | L8 | 008,009 | AC-CBO-011 |
 | F-CBO-012 | 搜索预算、超时与回退 | P0 | L8 | 009 | AC-CBO-012 |
 | F-CBO-013 | 分布式代价（Cop/Broadcast/Exchange/行列） | P0 | L8/L9/L13 | 007 | AC-CBO-013 |
-| F-CBO-014 | 双引擎对比实验与计划质量基线（RQ-1） | P1 | L8/L14 | 008,009 | AC-CBO-014 |
+| F-CBO-014 | 双引擎对比实验与计划质量基线（RQ-1） | P1 | L8/L14 | 008,009 | AC-CBO-014 / AC-CBO-015 |
 
 ### 8.8 F-PLAN · 执行计划治理框架（12；逐能力见 §7）
 
@@ -531,7 +531,7 @@
 | F-PLAN-006 | Plan Cache / Prepared / 失效 | P0 | L9 | 005 | AC-PLAN-006 |
 | F-PLAN-007 | Hint 体系（PL-HINT 全项） | P0 | L9 | F-SQL-011 | AC-PLAN-007 |
 | F-PLAN-008 | SPM / Baseline / Plan Replayer | P1 | L9 | 006 | AC-PLAN-008 |
-| F-PLAN-009 | 计划回归门禁 / plan hash / 稳定性 SLA | P0 | L9/L14 | 002 | AC-PLAN-009 |
+| F-PLAN-009 | 计划回归门禁 / plan hash / 稳定性 SLA | P0 | L9/L14 | 002 | AC-PLAN-009 / AC-TEST-009 |
 | F-PLAN-010 | AQE 自适应重优化与留痕 / 代价可视化导出 | P2 | L12/L14 | 003 | AC-PLAN-010 |
 | F-PLAN-011 | 下推开/关一致性契约（差分测试） | P0 | L9/L12 | 005 | AC-PLAN-005 |
 | F-PLAN-012 | 计划与统计/schema 版本绑定的可回放性 | P1 | L9 | F-CBO-001 | AC-PLAN-008 |
@@ -583,14 +583,14 @@
 | F-STO-014 | Region Split / Merge | P1 | L11 | 011 | AC-STO-007 |
 | F-STO-015 | Snapshot / 日志压缩 / Apply 状态机 | P1 | L11 | 012 | AC-STO-007 |
 | F-STO-016 | Store 心跳与状态上报 | P0 | L11 | 012 | AC-META-004 |
-| F-STO-017 | 副本校验 / checksum / 一致性比对 | P1 | L14 | 012 | AC-TEST-014 |
-| F-STO-018 | Coprocessor gRPC API | P0 | L12 | 005 | AC-EXEC-012 |
-| F-STO-019 | DagRequest 协议（算子 DAG + ranges + epoch） | P0 | L12 | 018 | AC-EXEC-012 |
-| F-STO-020 | 存储侧向量化表达式求值（复用 expr） | P0 | L12 | 019 | AC-PLAN-011 |
-| F-STO-021 | 存储侧 Selection / Agg / TopN / Limit | P0 | L12 | 020 | AC-EXEC-012 |
+| F-STO-017 | 副本校验 / checksum / 一致性比对 | P1 | L14 | 012 | AC-TEST-014 / AC-STO-008 |
+| F-STO-018 | Coprocessor gRPC API | P0 | L12 | 005 | AC-EXEC-012 / AC-STO-009 |
+| F-STO-019 | DagRequest 协议（算子 DAG + ranges + epoch） | P0 | L12 | 018 | AC-EXEC-012 / AC-STO-009 |
+| F-STO-020 | 存储侧向量化表达式求值（复用 expr） | P0 | L12 | 019 | AC-PLAN-011 / AC-STO-009 |
+| F-STO-021 | 存储侧 Selection / Agg / TopN / Limit | P0 | L12 | 020 | AC-EXEC-012 / AC-STO-009 |
 | F-STO-022 | Range 按 Region 切分与部分结果重试 | P0 | L12 | 011,019 | AC-EXEC-016 |
-| F-STO-023 | SST 批量导入 | P2 | L14 | 003 | AC-BENCH-007 |
-| F-STO-024 | 存储层指标与慢日志 | P1 | L9 | 005 | AC-OBS-004 |
+| F-STO-023 | SST 批量导入 | P2 | L14 | 003 | AC-BENCH-007 / AC-STO-010 |
+| F-STO-024 | 存储层指标与慢日志 | P1 | L9 | 005 | AC-OBS-004 / AC-STO-010 |
 
 ### 8.11 F-META · 元数据与调度（13）
 
@@ -698,15 +698,15 @@
 | F-TEST-010 | 下推开/关结果对拍 | P0 | L9 | F-PLAN-011 | AC-PLAN-005 |
 | F-TEST-011 | SQLancer 风格 TLP / NoREC / PQS | P1 | L14 | 007 | AC-TEST-005 |
 | F-TEST-012 | 随机 SQL 生成器（语法/类型感知） | P1 | L14 | 007 | AC-TEST-005 |
-| F-TEST-013 | Metamorphic / 关系代数等价测试 | P1 | L6 | 009 | AC-RBO-001 |
+| F-TEST-013 | Metamorphic / 关系代数等价测试 | P1 | L6 | 009 | AC-RBO-001 / AC-TEST-013 |
 | F-TEST-014 | 一致性 checksum / 副本比对 | P1 | L14 | F-STO-017 | AC-TEST-014 |
-| F-TEST-015 | 崩溃恢复与重启测试 | P1 | L11 | F-STO-015 | AC-STO-007 |
+| F-TEST-015 | 崩溃恢复与重启测试 | P1 | L11 | F-STO-015 | AC-STO-007 / AC-TEST-010 |
 | F-TEST-016 | 确定性分布式模拟器 | P1 | L11 | — | AC-TEST-006 |
 | F-TEST-017 | 混沌工程（kill/分区/时钟漂移/磁盘满） | P1 | L14 | 016 | AC-TEST-007 |
 | F-TEST-018 | 线性一致性检查（Porcupine / Jepsen 风格） | P1 | L14 | 016 | AC-TXN-008 |
 | F-TEST-019 | 长稳 72h 压测 | P1 | L14 | 017 | AC-TEST-008 |
 | F-TEST-020 | Fuzz（parser / protobuf / 编码） | P2 | L14 | 001 | AC-TEST-005 |
-| F-TEST-021 | 覆盖率门禁与验收矩阵自动校验 | P0 | L14 | 002 | AC-TEST-002 |
+| F-TEST-021 | 覆盖率门禁与验收矩阵自动校验 | P0 | L14 | 002 | AC-TEST-002 / AC-TEST-011 / AC-TEST-012 |
 
 ### 8.17 F-BENCH · 基准与性能工程（16）
 
