@@ -1,9 +1,22 @@
-//! Metrics 骨架（docs/04 F-OBS-001、AC-OBS-001；docs/03 L0：tracing/metrics）。
+//! Metrics / Tracing 骨架（docs/04 F-OBS-001/002、AC-OBS-001/002；docs/03 L0）。
 //!
-//! L0 只提供**无外部依赖**的指标注册与快照接口；tracing span 由各 crate 通过
-//! `tracing` facade 埋点（L0 要求先埋观测点，docs/03 §1 原则 3）。
+//! L0 提供指标注册与快照接口，并预埋 tracing span 入口（docs/03 §1 原则 3：
+//! 先埋观测点，避免 L6/L8 返工）。tracing subscriber 由 `server` 在 L5 装配。
 
 use std::collections::BTreeMap;
+
+/// 创建一个查询级 tracing span（L0 埋点契约；各 Lab 逐层补充字段）。
+#[macro_export]
+macro_rules! query_span {
+    ($sql_id:expr) => {
+        tracing::info_span!("query", sql_id = %$sql_id, plan_id = tracing::field::Empty)
+    };
+}
+
+/// 记录一条实验元数据（配合 F-OBS-012 的自动记录规范）。
+pub fn record_experiment(name: &str, seed: u64, repeat: usize) {
+    tracing::info!(target: "experiment", name, seed, repeat, "experiment.metadata");
+}
 
 /// 支持的指标值类型（counter / gauge / histogram 的简化统一表示）。
 #[derive(Debug, Clone, PartialEq)]
