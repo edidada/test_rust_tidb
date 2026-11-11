@@ -1,5 +1,9 @@
-//! `catalog` crate (L1/L5 契约骨架，L0 空壳)。
-//! 契约来源：docs/02 §3：`trait CatalogProvider`、内存 `Catalog`。
+//! `catalog` crate (L1 Catalog 与 Binder)。
+//! 契约来源：docs/02 §3、docs/04 F-SQL-007/008。
+
+pub mod binder;
+
+pub use binder::{BindOutput, BoundItem, DefaultBinder};
 
 use lattice_common::Result;
 use lattice_planner::LogicalPlanNode;
