@@ -68,6 +68,16 @@ impl Column {
     }
 
     fn encode_value(&mut self, value: &Scalar) -> Result<()> {
+        if self.data_type == DataType::Bool {
+            let Scalar::Bool(b) = value else {
+                return Err(lattice_common::Error::new(
+                    lattice_common::ErrorKind::TypeMismatch,
+                    "BOOL 列仅支持布尔标量",
+                ));
+            };
+            self.buffer.bytes.push(u8::from(*b));
+            return Ok(());
+        }
         if let Some(width) = self.data_type.fixed_width() {
             let Scalar::Int(v) = value else {
                 return Err(lattice_common::Error::new(
@@ -112,6 +122,11 @@ impl Column {
         }
         if !self.validity.is_valid(row) {
             return Ok(Scalar::Null);
+        }
+        if self.data_type == DataType::Bool {
+            return Ok(Scalar::Bool(
+                self.buffer.bytes.get(row).copied().unwrap_or(0) != 0,
+            ));
         }
         if let Some(width) = self.data_type.fixed_width() {
             let start = row * width;

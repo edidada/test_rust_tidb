@@ -49,6 +49,7 @@ dependencies = [
  "lattice-common",
  "lattice-types",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
