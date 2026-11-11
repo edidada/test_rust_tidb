@@ -1,0 +1,14 @@
+[package]
+name = "lattice-catalog"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+lattice-common = { path = "../common" }
+lattice-types = { path = "../types" }
+lattice-expr = { path = "../expr" }
+lattice-parser = { path = "../parser" }
+lattice-planner = { path = "../planner" }

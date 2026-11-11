@@ -1,0 +1,10 @@
+[package]
+name = "lattice-parser"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+lattice-common = { path = "../common" }

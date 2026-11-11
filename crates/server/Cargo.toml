@@ -1,0 +1,19 @@
+[package]
+name = "lattice-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+lattice-common = { path = "../common" }
+lattice-types = { path = "../types" }
+lattice-expr = { path = "../expr" }
+lattice-parser = { path = "../parser" }
+lattice-catalog = { path = "../catalog" }
+lattice-planner = { path = "../planner" }
+lattice-optimizer = { path = "../optimizer" }
+lattice-executor = { path = "../executor" }
+lattice-storage = { path = "../storage" }
+lattice-meta = { path = "../meta" }

@@ -1,0 +1,32 @@
+# LatticeDB — Cargo workspace (L0)
+# 依赖方向（单向，CI 静态检查）：
+# server → executor → optimizer → planner → expr → types → common
+# storage/meta 经 trait 注入到 executor，禁止反向引用。
+[workspace]
+resolver = "2"
+members = [
+    "crates/common",
+    "crates/types",
+    "crates/expr",
+    "crates/parser",
+    "crates/catalog",
+    "crates/planner",
+    "crates/optimizer",
+    "crates/executor",
+    "crates/storage",
+    "crates/meta",
+    "crates/server",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "Apache-2.0"
+repository = "https://github.com/edidada/test_rust_tidb"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive", "rc"] }
+serde_json = "1"
+thiserror = "1"
+tracing = "0.1"
