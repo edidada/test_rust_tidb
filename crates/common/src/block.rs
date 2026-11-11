@@ -68,6 +68,16 @@ impl Validity {
     pub fn null_count(&self) -> usize {
         self.bits.iter().filter(|v| !**v).count()
     }
+
+    /// 追加一行有效性位（供 `Column::push` 递增构造）。
+    pub fn push(&mut self, valid: bool) {
+        self.bits.push(valid);
+    }
+
+    /// 暴露底层位集合（供 `Column::take` 重建有效性位图）。
+    pub fn bits_vec(&self) -> Vec<bool> {
+        self.bits.clone()
+    }
 }
 
 /// 延迟物化的选择向量：逻辑行号到物理行号的映射。

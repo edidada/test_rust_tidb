@@ -1,173 +1,50 @@
-//! `types` crate (L1 契约骨架，L0 空壳)。
-//! 契约来源：docs/02 §2.1、docs/11 「types: DataType, Block, FuncRegistry, ScalarEvaluator」。
+//! `types` crate (L1 类型系统基础)。
+//! 契约来源：docs/02 §2.1、§11；docs/03 L1（类型系统、表达式、Parser、Binder）。
+//!
+//! 模块划分：`datatype`（类型族/精度）、`scalar`（字面量/隐式转换/溢出）、
+//! `bool3`（三值逻辑）、`column`（列式批读写与延迟物化）。
 
-use lattice_common::{BlockBase, Buffer, Validity};
-use serde::{Deserialize, Serialize};
+pub mod bool3;
+pub mod column;
+pub mod datatype;
+pub mod scalar;
 
-/// SQL 数据类型（docs/02 §2.1 全量枚举）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum DataType {
-    Null,
-    Bool,
-    Int8,
-    Int16,
-    Int32,
-    Int64,
-    UInt8,
-    UInt16,
-    UInt32,
-    UInt64,
-    Float32,
-    Float64,
-    Decimal { precision: u8, scale: u8 },
-    Date,
-    Time,
-    DateTime,
-    Timestamp,
-    Duration,
-    Year,
-    Char(u32),
-    VarChar(u32),
-    Binary(u32),
-    VarBinary(u32),
-    Json,
-    Enum,
-    Set,
-    Bit,
-    Vector(u32),
-}
-
-impl DataType {
-    /// 是否为数值类型（Binder 隐式转换的基础，L1 实现）。
-    pub fn is_numeric(&self) -> bool {
-        matches!(
-            self,
-            DataType::Int8
-                | DataType::Int16
-                | DataType::Int32
-                | DataType::Int64
-                | DataType::UInt8
-                | DataType::UInt16
-                | DataType::UInt32
-                | DataType::UInt64
-                | DataType::Float32
-                | DataType::Float64
-                | DataType::Decimal { .. }
-        )
-    }
-}
-
-/// 三值逻辑（docs/02 §2.1：Predicate 求值为 Bool3，Filter 仅保留 True）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Bool3 {
-    True,
-    False,
-    Unknown,
-}
-
-impl Bool3 {
-    /// SQL AND 真值表。
-    pub fn and(self, rhs: Bool3) -> Bool3 {
-        use Bool3::*;
-        match (self, rhs) {
-            (False, _) | (_, False) => False,
-            (True, True) => True,
-            _ => Unknown,
-        }
-    }
-
-    /// SQL OR 真值表。
-    pub fn or(self, rhs: Bool3) -> Bool3 {
-        use Bool3::*;
-        match (self, rhs) {
-            (True, _) | (_, True) => True,
-            (False, False) => False,
-            _ => Unknown,
-        }
-    }
-}
-
-/// 实现标准 `Not` trait（clippy should_implement_trait）。
-impl std::ops::Not for Bool3 {
-    type Output = Bool3;
-
-    fn not(self) -> Bool3 {
-        match self {
-            Bool3::True => Bool3::False,
-            Bool3::False => Bool3::True,
-            Bool3::Unknown => Bool3::Unknown,
-        }
-    }
-}
-
-/// 标量值（docs/02 §2.1 `Scalar`，L0 用简化表示，L1 补全 Decimal/Date/Time/Json）。
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum Scalar {
-    Null,
-    Bool(bool),
-    Int(i128),
-    Float(f64),
-    Bytes(Vec<u8>),
-    Str(String),
-}
-
-/// 列：类型 + 有效性位图 + 值缓冲区（docs/02 §2.1 `Column`）。
-#[derive(Debug, Clone, PartialEq)]
-pub struct Column {
-    pub data_type: DataType,
-    pub validity: Validity,
-    pub buffer: Buffer,
-}
-
-impl Column {
-    pub fn new(data_type: DataType, rows: usize) -> Self {
-        Self {
-            data_type,
-            validity: Validity::new(rows, true),
-            buffer: Buffer::new(),
-        }
-    }
-}
-
-/// 列式批（对齐 Arrow 语义，docs/02 §2.1 `Block`）。
-pub type Block = BlockBase<Column>;
-
-/// 批构建器（复用 `common` 的形状一致性校验）。
-pub type BlockBuilder = lattice_common::BlockBuilder<Column>;
+pub use bool3::Bool3;
+pub use column::{block_from_columns, Block, BlockBuilderAlias, Column};
+pub use datatype::{DataType, TypeClass};
+pub use scalar::Scalar;
 
 /// 选择向量重导出，供上层 Filter/延迟物化使用。
 pub use lattice_common::SelectionVector as Sel;
 
+/// 兼容 L0 骨架的批构建器别名。
+pub type BlockBuilder = crate::column::BlockBuilderAlias;
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::ops::Not;
 
     #[test]
-    fn three_valued_logic_matches_sql_truth_tables() {
+    fn l0_contract_still_compiles() {
+        // L0 骨架契约：LogicalPlanNode 等下游仍可用 TableDual 构造；
+        // 此处验证 types 侧原有 API 未被破坏。
+        let mut col = Column::empty(DataType::Int64);
+        col.push(&Scalar::Int(1)).unwrap();
+        let block = BlockBuilder::new(4).column(col).rows(1).build().unwrap();
+        assert_eq!(block.logical_rows(), 1);
+        assert_eq!(block.columns[0].get(0).unwrap(), Scalar::Int(1));
+    }
+
+    #[test]
+    fn three_valued_logic_and_selection() {
+        use std::ops::Not;
         assert_eq!(Bool3::True.and(Bool3::Unknown), Bool3::Unknown);
-        assert_eq!(Bool3::False.and(Bool3::Unknown), Bool3::False);
-        assert_eq!(Bool3::True.or(Bool3::Unknown), Bool3::True);
-        assert_eq!(Bool3::False.or(Bool3::Unknown), Bool3::Unknown);
         assert_eq!(Bool3::Unknown.not(), Bool3::Unknown);
-    }
-
-    #[test]
-    fn data_type_numeric_classification() {
-        assert!(DataType::Int64.is_numeric());
-        assert!(DataType::Float32.is_numeric());
-        assert!(!DataType::VarChar(255).is_numeric());
-    }
-
-    #[test]
-    fn block_builder_keeps_columns_and_selection() {
-        let block = BlockBuilder::new(8)
-            .column(Column::new(DataType::Int64, 3))
-            .rows(3)
-            .selection(lattice_common::SelectionVector(vec![0, 2]))
-            .build()
-            .unwrap();
-        assert_eq!(block.col_count(), 1);
-        assert_eq!(block.logical_rows(), 2);
+        let mut col = Column::empty(DataType::Int16);
+        for v in [1, 2, 3] {
+            col.push(&Scalar::Int(v)).unwrap();
+        }
+        let taken = col.take(&Sel(vec![0, 2])).unwrap();
+        assert_eq!(taken.get(1).unwrap(), Scalar::Int(3));
     }
 }
