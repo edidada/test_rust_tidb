@@ -1,14 +1,25 @@
-//! `planner` crate (L2 契约骨架，L0 空壳)。
-//! 契约来源：docs/02 §2.3、§3；docs/02 §11：`LogicalPlanNode, Schema, Rule`。
+//! `planner` crate (L2 逻辑计划与算子框架)。
+//! 契约来源：docs/02 §2.3/§3、docs/04 §4.1 OP-L-*、docs/03 L2。
+//!
+//! 模块：`logical`（28 个逻辑算子）、`plan_node`（Schema 推导/遍历/等价比较）、
+//! `explain`（EXPLAIN 逻辑计划输出）。计划构建后不可变（`Arc`）。
+
+pub mod explain;
+pub mod logical;
+pub mod plan_node;
+
+pub use explain::{explain, ExplainFormat};
+pub use logical::{
+    data_source, inner_join, limit, literal_expr, projection, selection, Admin, AdminKind,
+    Aggregation, Apply, Arity, Cte, DataSource, Dml, DmlKind, Expand, Join, JoinType, Limit,
+    LogicalPlan, MemoGroup, Projection, SelectLock, Selection, SetOp, SetOpKind, Sort, TopN,
+    Window,
+};
+pub use plan_node::{LogicalPlanNode, PlanNodeId, Statistics};
 
 use lattice_common::Result;
 use lattice_types::DataType;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-
-/// 计划节点 ID（docs/02 §2.3）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct PlanNodeId(pub u64);
 
 /// 输出列 Schema（列裁剪后收缩，docs/02 §2.3）。
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -29,42 +40,6 @@ pub struct RuleHit {
     pub rule: String,
     pub before: PlanNodeId,
     pub after: PlanNodeId,
-}
-
-/// 逻辑算子枚举（04 §4.1 的 L0 最小骨架；L2 补全全部 `OP-L-*`）。
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum LogicalPlan {
-    TableDual,
-    DataSource { table: String },
-}
-
-/// 逻辑计划节点（docs/02 §2.3）。计划构建后不可变（`Arc`），状态在算子实例内。
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct LogicalPlanNode {
-    pub id: PlanNodeId,
-    pub plan: LogicalPlan,
-    pub children: Vec<Arc<LogicalPlanNode>>,
-    pub schema: Schema,
-    pub rule_trace: Vec<RuleHit>,
-}
-
-impl LogicalPlanNode {
-    pub fn table_dual(id: PlanNodeId) -> Self {
-        Self {
-            id,
-            plan: LogicalPlan::TableDual,
-            children: Vec::new(),
-            schema: Schema::default(),
-            rule_trace: Vec::new(),
-        }
-    }
-
-    /// 计划可序列化（docs/02 §14 检查清单）。
-    pub fn to_json(&self) -> Result<String> {
-        serde_json::to_string(self).map_err(|e| {
-            lattice_common::Error::new(lattice_common::ErrorKind::Internal, e.to_string())
-        })
-    }
 }
 
 /// 规则 pattern（docs/02 §3 `Rule::pattern`）。
@@ -89,7 +64,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn logical_plan_serializes_to_json() {
+    fn l0_contract_still_compiles() {
         let node = LogicalPlanNode::table_dual(PlanNodeId(1));
         let json = node.to_json().unwrap();
         assert!(json.contains("TableDual"));
@@ -99,11 +74,14 @@ mod tests {
     #[test]
     fn rule_trace_is_part_of_plan() {
         let mut node = LogicalPlanNode::table_dual(PlanNodeId(7));
-        node.rule_trace.push(RuleHit {
-            rule: "R-PPD".into(),
-            before: PlanNodeId(1),
-            after: PlanNodeId(7),
-        });
+        node.record_rule_hit("R-PPD", PlanNodeId(1));
         assert_eq!(node.rule_trace[0].rule, "R-PPD");
+        assert_eq!(node.rule_trace[0].after, PlanNodeId(7));
+    }
+
+    #[test]
+    fn all_op_l_variants_have_ids() {
+        assert!(LogicalPlan::TableDual.op_id().starts_with("OP-L-"));
+        assert!(logical::inner_join(None).op_id().starts_with("OP-L-"));
     }
 }

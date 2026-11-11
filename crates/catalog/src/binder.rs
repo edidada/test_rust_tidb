@@ -5,7 +5,7 @@ use crate::{CatalogProvider, MemoryCatalog, QualifiedName, SessionCtx};
 use lattice_common::{Error, ErrorKind, Result};
 use lattice_expr::{ColumnRef, Expr, FuncSig};
 use lattice_parser::{AstExpr, BinaryOp, Literal, Statement, UnaryOp};
-use lattice_planner::{ColumnMeta, LogicalPlan, LogicalPlanNode, PlanNodeId, Schema};
+use lattice_planner::{LogicalPlanNode, PlanNodeId};
 use lattice_types::{DataType, Scalar};
 use std::sync::Arc;
 
@@ -273,25 +273,16 @@ impl<C: CatalogProvider> DefaultBinder<C> {
         } else {
             let qname = &tables[0];
             let table = self.catalog.table(qname)?;
-            LogicalPlanNode {
-                id: PlanNodeId(1),
-                plan: LogicalPlan::DataSource {
-                    table: format!("{}.{}", qname.database, qname.table),
-                },
-                children: Vec::new(),
-                schema: Schema {
-                    columns: table
-                        .columns
-                        .iter()
-                        .map(|(name, ty)| ColumnMeta {
-                            name: name.clone(),
-                            data_type: *ty,
-                            nullable: true,
-                        })
-                        .collect(),
-                },
-                rule_trace: Vec::new(),
-            }
+            let cols: Vec<(&str, DataType)> = table
+                .columns
+                .iter()
+                .map(|(name, ty)| (name.as_str(), *ty))
+                .collect();
+            LogicalPlanNode::data_source(
+                PlanNodeId(1),
+                &format!("{}.{}", qname.database, qname.table),
+                &cols,
+            )?
         };
 
         Ok(BindOutput {
@@ -367,6 +358,7 @@ mod tests {
     use crate::{Table, TableId};
     use lattice_parser::Parser as _;
     use lattice_parser::SqlParser;
+    use lattice_planner::LogicalPlan;
 
     fn catalog_with_tables() -> MemoryCatalog {
         let mut cat = MemoryCatalog::new();
@@ -406,7 +398,7 @@ mod tests {
         assert_eq!(out.projection[0].data_type, DataType::Int64);
         assert_eq!(out.projection[1].data_type, DataType::VarChar(32));
         assert!(out.selection.is_some());
-        assert!(matches!(out.plan.plan, LogicalPlan::DataSource { .. }));
+        assert!(matches!(out.plan.plan, LogicalPlan::DataSource(_)));
     }
 
     #[test]
@@ -463,6 +455,6 @@ mod tests {
         let stmts = parser.parse("SELECT a FROM t").unwrap();
         let binder = DefaultBinder::with_catalog(catalog_with_tables(), "test");
         let plan = crate::Binder::bind(&binder, &stmts[0], &SessionCtx).unwrap();
-        assert!(matches!(plan.plan, LogicalPlan::DataSource { .. }));
+        assert!(matches!(plan.plan, LogicalPlan::DataSource(_)));
     }
 }
