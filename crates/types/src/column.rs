@@ -78,6 +78,16 @@ impl Column {
             self.buffer.bytes.push(u8::from(*b));
             return Ok(());
         }
+        if matches!(self.data_type, DataType::Float32 | DataType::Float64) {
+            let Scalar::Float(f) = value else {
+                return Err(lattice_common::Error::new(
+                    lattice_common::ErrorKind::TypeMismatch,
+                    "浮点列仅支持 Scalar::Float",
+                ));
+            };
+            self.buffer.bytes.extend_from_slice(&f.to_be_bytes());
+            return Ok(());
+        }
         if let Some(width) = self.data_type.fixed_width() {
             let Scalar::Int(v) = value else {
                 return Err(lattice_common::Error::new(
@@ -127,6 +137,11 @@ impl Column {
             return Ok(Scalar::Bool(
                 self.buffer.bytes.get(row).copied().unwrap_or(0) != 0,
             ));
+        }
+        if matches!(self.data_type, DataType::Float32 | DataType::Float64) {
+            let start = row * 8;
+            let slice = &self.buffer.bytes[start..start + 8];
+            return Ok(Scalar::Float(f64::from_be_bytes(slice.try_into().unwrap())));
         }
         if let Some(width) = self.data_type.fixed_width() {
             let start = row * width;

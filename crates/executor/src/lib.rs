@@ -6,12 +6,17 @@
 //! W10 扫描/投影/过滤/Dual/Limit；W11 Join；W12 聚合/集合；W13 排序/窗口；
 //! W14 DML；W15 差分测试与统计埋点。
 
+pub mod agg;
 pub mod context;
 pub mod join;
 pub mod row;
 pub mod scan;
 pub mod unary;
 
+pub use agg::{
+    check_set_schema, hash_agg, scalar_agg, stream_agg, AggCall, AggFunc, AggSpec,
+    AggregateExecutor, DistinctExecutor, SetOp, SetOpExecutor,
+};
 pub use context::{CancelToken, ExecCtx, ExecStats, MemoryTracker};
 pub use join::{
     hash_join, index_join, merge_join, nested_loop_join, null_aware_anti_join, JoinExecutor,
