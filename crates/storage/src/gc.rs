@@ -394,8 +394,24 @@ mod tests {
         assert_eq!(r.threads, 4);
         assert_eq!(r.other_errors, 0, "不应出现非冲突类错误");
         assert!(r.committed > 0, "至少要有成功提交");
-        assert!(r.conflicts > 0, "并发写必须检出冲突");
+        // 冲突是否出现取决于线程调度（CI 与本地可能不同）；核心不变量是
+        // 每个操作要么成功提交、要么被正确分类为写冲突，不丢数据、无其它错误。
         assert_eq!(r.committed + r.conflicts, 20);
+    }
+
+    #[test]
+    fn deterministic_lock_conflict_injection() {
+        // 确定性注入：长事务持锁 → 并发 auto_commit 必然检出 WriteConflict。
+        use crate::txn::TxnManager;
+        let mgr = TxnManager::memory();
+        let mut holder = mgr.begin().unwrap();
+        holder.write(Mutation::put(b"hot", b"hold")).unwrap();
+        holder.prewrite(100).unwrap();
+        let err = mgr
+            .auto_commit(vec![Mutation::put(b"hot", b"other")], 100)
+            .unwrap_err();
+        assert_eq!(err.kind, ErrorKind::WriteConflict);
+        holder.rollback().unwrap();
     }
 
     #[test]
