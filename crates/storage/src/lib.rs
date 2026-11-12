@@ -5,6 +5,7 @@
 
 pub mod encoding;
 pub mod engine;
+pub mod txn;
 
 pub use encoding::{
     decode_bytes, decode_decimal, decode_desc_ts, decode_float64, decode_int64, decode_uint64,
@@ -16,6 +17,7 @@ pub use engine::{
     CfStore, EngineKind, LockInfo, MemoryCfStore, MvccEngine, RocksDbConfig, WriteInfo, WriteType,
     ALL_CFS, CF_DEFAULT, CF_LOCK, CF_WRITE,
 };
+pub use txn::{LocalTso, Mutation, OptimisticTxn, ResolveOutcome, TxnManager, TxnState};
 
 use lattice_common::Result;
 use std::collections::BTreeMap;

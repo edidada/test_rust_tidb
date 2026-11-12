@@ -367,6 +367,38 @@ impl MvccEngine {
         )
     }
 
+    /// 某 user_key 的最新已提交 commit_ts（写冲突检测用，AC-TXN-005）。
+    /// 降序 TS 编码下，最小 txn_key 即最大 commit_ts。
+    pub fn max_commit_ts(&self, user_key: &[u8]) -> Result<Option<Timestamp>> {
+        let lower = txn_key(user_key, Timestamp::MAX); // 最小 key（!MAX = 0）
+        match self.write.seek_latest(user_key, &lower)? {
+            Some((k, _)) => crate::encoding::split_txn_key(&k)
+                .map(|(_, ts)| Some(ts))
+                .ok_or_else(|| Error::new(ErrorKind::Internal, "write key 无法解析 TS")),
+            None => Ok(None),
+        }
+    }
+
+    /// 列出某 user_key 的全部 write 记录（GC / ResolveLock 用）。
+    pub fn write_records(&self, user_key: &[u8]) -> Result<Vec<(Timestamp, WriteInfo)>> {
+        let mut out = Vec::new();
+        for (k, v) in self.write.scan_prefix(user_key)? {
+            let Some((uk, ts)) = crate::encoding::split_txn_key(&k) else {
+                continue;
+            };
+            if uk != user_key {
+                continue;
+            }
+            out.push((ts, WriteInfo::from_bytes(&v)?));
+        }
+        Ok(out)
+    }
+
+    /// 删除指定 commit_ts 的 write 记录（GC 用，功能 18）。
+    pub fn delete_write(&self, user_key: &[u8], commit_ts: Timestamp) -> Result<()> {
+        self.write.delete(&txn_key(user_key, commit_ts))
+    }
+
     pub fn total_versions(&self) -> usize {
         self.default.len() + self.lock.len() + self.write.len()
     }
