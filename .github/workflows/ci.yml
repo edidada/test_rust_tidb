@@ -59,7 +59,7 @@ jobs:
         run: python3 scripts/bench_template.py --self-test
 
       - name: L3 operator acceptance (differential + boundary + explain analyze)
-        run: cargo test -p lattice-executor verify:: -- --nocapture
+        run: "cargo test -p lattice-executor verify:: -- --nocapture"
 
   coverage:
     name: Coverage (llvm-cov)
