@@ -14,6 +14,7 @@ pub mod row;
 pub mod scan;
 pub mod sort;
 pub mod unary;
+pub mod verify;
 
 pub use agg::{
     check_set_schema, hash_agg, scalar_agg, stream_agg, AggCall, AggFunc, AggSpec,
@@ -36,6 +37,10 @@ pub use sort::{
 };
 pub use unary::{
     block_of, collect_rows, rows_executor, FilterExecutor, LimitExecutor, ProjectionExecutor,
+};
+pub use verify::{
+    assert_equivalent, baseline, canonical, explain_analyze, result_rows, run_boundary_suite,
+    run_differential_suite, Fixture, OperatorBaseline, OperatorStats,
 };
 
 use lattice_common::Result;
