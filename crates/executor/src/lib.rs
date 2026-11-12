@@ -7,11 +7,16 @@
 //! W14 DML；W15 差分测试与统计埋点。
 
 pub mod context;
+pub mod join;
 pub mod row;
 pub mod scan;
 pub mod unary;
 
 pub use context::{CancelToken, ExecCtx, ExecStats, MemoryTracker};
+pub use join::{
+    hash_join, index_join, merge_join, nested_loop_join, null_aware_anti_join, JoinExecutor,
+    JoinKey, JoinSpec, MatchStrategy, PhysicalJoinType, CARTESIAN_MAX_ROWS,
+};
 pub use row::{block_take, block_to_rows, empty_block, rows_to_block, Row, RowSchema};
 pub use scan::{collect, CteScanExecutor, TableDualExecutor, TableScanExecutor};
 pub use unary::{
