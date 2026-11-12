@@ -235,6 +235,11 @@ impl TxnManager {
         &self.engine
     }
 
+    /// 分配一个提交时间戳（供显式 2PC / 测试辅助）。
+    pub fn tso_commit_ts(&self) -> Timestamp {
+        self.tso.get_ts(1).expect("TSO 分配不应失败")
+    }
+
     pub fn begin(&self) -> Result<OptimisticTxn> {
         Ok(OptimisticTxn::begin(
             Arc::clone(&self.engine),

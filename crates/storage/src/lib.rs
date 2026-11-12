@@ -1,10 +1,11 @@
 //! `storage` crate (L4 单机 KV、MVCC 与事务)。
 //! 契约来源：docs/02 §3 `KvEngine`、§4 KV 编码；docs/03 L4。
 //!
-//! 模块：`encoding`（保序编码/Key 布局）、`engine`（三 CF MVCC）、`txn`（2PC）。
+//! 模块：`encoding`（保序编码/Key 布局）、`engine`（三 CF MVCC）、`txn`（2PC）、`gc`（GC safe point）。
 
 pub mod encoding;
 pub mod engine;
+pub mod gc;
 pub mod txn;
 
 pub use encoding::{
@@ -16,6 +17,10 @@ pub use encoding::{
 pub use engine::{
     CfStore, EngineKind, LockInfo, MemoryCfStore, MvccEngine, RocksDbConfig, WriteInfo, WriteType,
     ALL_CFS, CF_DEFAULT, CF_LOCK, CF_WRITE,
+};
+pub use gc::{
+    inject_concurrent_writes, inject_si_anomalies, ActiveSnapshots, ConflictInjectionResult, Gc,
+    GcSafePoint, GcStats, SiAnomalyResult,
 };
 pub use txn::{LocalTso, Mutation, OptimisticTxn, ResolveOutcome, TxnManager, TxnState};
 

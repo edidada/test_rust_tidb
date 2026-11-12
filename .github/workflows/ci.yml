@@ -61,6 +61,9 @@ jobs:
       - name: L3 operator acceptance (differential + boundary + explain analyze)
         run: "cargo test -p lattice-executor verify:: -- --nocapture"
 
+      - name: L4 MVCC/2PC acceptance (encoding + GC + conflict injection)
+        run: "cargo test -p lattice-storage -- --nocapture"
+
   coverage:
     name: Coverage (llvm-cov)
     runs-on: ubuntu-24.04
