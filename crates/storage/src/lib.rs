@@ -1,5 +1,16 @@
-//! `storage` crate (L4 契约骨架，L0 空壳)。
+//! `storage` crate (L4 单机 KV、MVCC 与事务)。
 //! 契约来源：docs/02 §3 `KvEngine`、§4 KV 编码；docs/03 L4。
+//!
+//! 模块：`encoding`（保序编码/Key 布局）、`engine`（三 CF MVCC）、`txn`（2PC）。
+
+pub mod encoding;
+
+pub use encoding::{
+    decode_bytes, decode_decimal, decode_desc_ts, decode_float64, decode_int64, decode_uint64,
+    encode_bytes, encode_decimal, encode_desc_ts, encode_float64, encode_int64, encode_nullable,
+    encode_uint64, index_key, meta_key, record_key, split_txn_key, table_prefix, txn_key,
+    NOT_NULL_PREFIX, NULL_PREFIX,
+};
 
 use lattice_common::Result;
 use std::collections::BTreeMap;
