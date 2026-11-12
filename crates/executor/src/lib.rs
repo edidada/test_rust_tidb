@@ -11,6 +11,7 @@ pub mod context;
 pub mod join;
 pub mod row;
 pub mod scan;
+pub mod sort;
 pub mod unary;
 
 pub use agg::{
@@ -24,6 +25,10 @@ pub use join::{
 };
 pub use row::{block_take, block_to_rows, empty_block, rows_to_block, Row, RowSchema};
 pub use scan::{collect, CteScanExecutor, TableDualExecutor, TableScanExecutor};
+pub use sort::{
+    Frame, MaterializeExecutor, SortExecutor, SortKey, TopNExecutor, WindowExecutor, WindowFunc,
+    WindowSpec,
+};
 pub use unary::{
     block_of, collect_rows, rows_executor, FilterExecutor, LimitExecutor, ProjectionExecutor,
 };
