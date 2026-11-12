@@ -1,12 +1,25 @@
-//! `server` crate (L5/L9 契约骨架，L0 空壳)。
+//! `server` crate (L5 Server 与端到端 SQL)。
 //! 契约来源：docs/01 §3.1（MySQL wire / TCP 4000）、docs/02 §11；docs/03 L5。
+//!
+//! 模块：`protocol`（MySQL wire 编解码）、`session`（Session/Prepared/SlowLog）、
+//! `connection`（连接状态机与命令分发、TCP 服务）。
+
+pub mod connection;
+pub mod protocol;
+pub mod session;
+
+pub use connection::{serve_one, server_capabilities, CommandResult, Connection};
+pub use protocol::{
+    capability, ByteReader, ColumnMeta, ColumnType, Command, MySqlErrorCode, Packet, AUTH_PLUGIN,
+    DEFAULT_CHARSET, PROTOCOL_VERSION, SERVER_VERSION,
+};
+pub use session::{
+    count_params, error_to_packet, normalize_sql, sql_digest, Grant, PreparedStatement, Privilege,
+    Session, SessionId, SlowLog, SlowLogEntry,
+};
 
 use lattice_common::{Config, Result};
 use std::sync::Arc;
-
-/// 会话占位（L5 填充 Prepared Statement / 变量 / 权限）。
-#[derive(Debug, Clone, Default)]
-pub struct Session;
 
 /// 服务端骨架：L0 仅验证分层装配与配置注入，不监听端口。
 #[derive(Debug, Clone)]
