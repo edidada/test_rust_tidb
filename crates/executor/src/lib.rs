@@ -8,6 +8,7 @@
 
 pub mod agg;
 pub mod context;
+pub mod dml;
 pub mod join;
 pub mod row;
 pub mod scan;
@@ -19,6 +20,10 @@ pub use agg::{
     AggregateExecutor, DistinctExecutor, SetOp, SetOpExecutor,
 };
 pub use context::{CancelToken, ExecCtx, ExecStats, MemoryTracker};
+pub use dml::{
+    predicate_true, AnalyzeExecutor, DeleteExecutor, ExpandExecutor, InsertExecutor, MemTable,
+    SelectLockExecutor, TableStats, UpdateExecutor,
+};
 pub use join::{
     hash_join, index_join, merge_join, nested_loop_join, null_aware_anti_join, JoinExecutor,
     JoinKey, JoinSpec, MatchStrategy, PhysicalJoinType, CARTESIAN_MAX_ROWS,

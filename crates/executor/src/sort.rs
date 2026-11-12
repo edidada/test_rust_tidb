@@ -114,15 +114,15 @@ fn materialize(
 
 /// 分块输出执行器基类（Sort/TopN/Window/Materialize 共用）。
 #[derive(Debug)]
-struct ChunkEmitter {
-    result: Vec<Row>,
-    cursor: usize,
-    chunk_size: usize,
-    stats: ExecStats,
+pub(crate) struct ChunkEmitter {
+    pub(crate) result: Vec<Row>,
+    pub(crate) cursor: usize,
+    pub(crate) chunk_size: usize,
+    pub(crate) stats: ExecStats,
 }
 
 impl ChunkEmitter {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             result: Vec::new(),
             cursor: 0,
@@ -131,7 +131,7 @@ impl ChunkEmitter {
         }
     }
 
-    fn emit(&mut self, schema: &RowSchema) -> Result<Option<Block>> {
+    pub(crate) fn emit(&mut self, schema: &RowSchema) -> Result<Option<Block>> {
         if self.cursor >= self.result.len() {
             return Ok(None);
         }
